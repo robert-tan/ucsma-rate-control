@@ -364,43 +364,6 @@ static struct ath_buf *ath_tx_get_buffer(struct ath_softc *sc)
 	return bf;
 }
 
-int ath_cw_update(struct ath_softc *sc, int qnum)
-{
-	struct ath_hw *ah = sc->sc_ah;
-	int error = 0;
-	struct ath9k_tx_queue_info qi;
-	u32 buf_size;
-
-	BUG_ON(sc->tx.txq[qnum].axq_qnum != qnum);
-
-	ath9k_hw_get_txq_props(ah, qnum, &qi);
-
-	buf_size = ath_tx_get_buf_size(sc);
-	if (buf_size > 3 * (ATH_TXBUF / 4)) {
-		qi.tqi_cwmin = 15;
-		qi.tqi_cwmax = 15;
-	} else if (buf_size > 2 * (ATH_TXBUF / 4)) {
-		qi.tqi_cwmin = 7;
-		qi.tqi_cwmax = 7;
-	} else if (buf_size > (ATH_TXBUF / 4)) {
-		qi.tqi_cwmin = 3;
-		qi.tqi_cwmax = 3;
-	} else {
-		qi.tqi_cwmin = 1;
-		qi.tqi_cwmax = 1;
-	}
-
-	if (!ath9k_hw_set_txq_props(ah, qnum, &qi)) {
-		ath_err(ath9k_hw_common(sc->sc_ah),
-			"Unable to update hardware queue %u!\n", qnum);
-		error = -EIO;
-	} else {
-		ath9k_hw_resettxqueue(ah, qnum);
-	}
-
-	return error;
-}
-
 static void ath_tx_return_buffer(struct ath_softc *sc, struct ath_buf *bf)
 {
 	int i;
@@ -409,10 +372,10 @@ static void ath_tx_return_buffer(struct ath_softc *sc, struct ath_buf *bf)
 	list_add_tail(&bf->list, &sc->tx.txbuf);
 	spin_unlock_bh(&sc->tx.txbuflock);
 
-	// Update all txq buffers
-	for (i = 0; i < IEEE80211_NUM_ACS; i++) {
-		ath_cw_update(sc, sc->tx.txq_map[i]->axq_qnum);
-	}
+	// // Update all txq buffers
+	// for (i = 0; i < IEEE80211_NUM_ACS; i++) {
+	// 	ath_cw_update(sc, sc->tx.txq_map[i]->axq_qnum);
+	// }
 }
 
 static struct ath_buf* ath_clone_txbuf(struct ath_softc *sc, struct ath_buf *bf)

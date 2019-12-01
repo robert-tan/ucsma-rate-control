@@ -821,6 +821,43 @@ u32 ath_tx_get_buf_size(struct ath_softc *sc) {
 	return size;
 }
 
+int ath_cw_update(struct ath_softc *sc, int qnum)
+{
+	struct ath_hw *ah = sc->sc_ah;
+	int error = 0;
+	struct ath9k_tx_queue_info qi;
+	u32 buf_size;
+
+	BUG_ON(sc->tx.txq[qnum].axq_qnum != qnum);
+
+	ath9k_hw_get_txq_props(ah, qnum, &qi);
+
+	buf_size = ath_tx_get_buf_size(sc);
+	if (buf_size > 3 * (ATH_TXBUF / 4)) {
+		qi.tqi_cwmin = 15;
+		qi.tqi_cwmax = 15;
+	} else if (buf_size > 2 * (ATH_TXBUF / 4)) {
+		qi.tqi_cwmin = 7;
+		qi.tqi_cwmax = 7;
+	} else if (buf_size > (ATH_TXBUF / 4)) {
+		qi.tqi_cwmin = 3;
+		qi.tqi_cwmax = 3;
+	} else {
+		qi.tqi_cwmin = 1;
+		qi.tqi_cwmax = 1;
+	}
+
+	if (!ath9k_hw_set_txq_props(ah, qnum, &qi)) {
+		ath_err(ath9k_hw_common(sc->sc_ah),
+			"Unable to update hardware queue %u!\n", qnum);
+		error = -EIO;
+	} else {
+		ath9k_hw_resettxqueue(ah, qnum);
+	}
+
+	return error;
+}
+
 static u32 ath_tx_default_wait(u32 buf_size) {
 	return (ATH_TXBUF - buf_size) / 2;
 }
@@ -835,7 +872,7 @@ static void ath9k_tx(struct ieee80211_hw *hw,
  	struct ath_tx_control txctl;
  	struct ieee80211_hdr *hdr;
  	unsigned long flags;
- 	u32 wait_us;
+ 	u32 wait_ms;
 
 	wait_ms = ath_tx_default_wait(ath_tx_get_buf_size(hw->priv));
 	// if (counter % 1000 == 0) {
@@ -847,6 +884,12 @@ static void ath9k_tx(struct ieee80211_hw *hw,
 	mdelay(wait_ms);
 
 	sc = hw->priv;
+
+	// Update all txq buffers
+	for (i = 0; i < IEEE80211_NUM_ACS; i++) {
+		ath_cw_update(sc, sc->tx.txq_map[i]->axq_qnum);
+	}
+
 	common = ath9k_hw_common(sc->sc_ah);
 	hdr = (struct ieee80211_hdr *) skb->data;
 
