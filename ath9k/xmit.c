@@ -409,10 +409,10 @@ static void ath_tx_return_buffer(struct ath_softc *sc, struct ath_buf *bf)
 	list_add_tail(&bf->list, &sc->tx.txbuf);
 	spin_unlock_bh(&sc->tx.txbuflock);
 
-	// // Update all txq buffers
-	// for (i = 0; i < IEEE80211_NUM_ACS; i++) {
-	// 	ath_cw_update(sc, sc->tx.txq_map[i]->axq_qnum);
-	// }
+	// Update all txq buffers
+	for (i = 0; i < IEEE80211_NUM_ACS; i++) {
+		ath_cw_update(sc, sc->tx.txq_map[i]->axq_qnum);
+	}
 }
 
 static struct ath_buf* ath_clone_txbuf(struct ath_softc *sc, struct ath_buf *bf)

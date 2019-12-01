@@ -822,7 +822,7 @@ u32 ath_tx_get_buf_size(struct ath_softc *sc) {
 }
 
 static u32 ath_tx_default_wait(u32 buf_size) {
-	return (ATH_TXBUF - buf_size) * 100;
+	return (ATH_TXBUF - buf_size) / 2;
 }
 
 int counter = 0;
@@ -837,15 +837,14 @@ static void ath9k_tx(struct ieee80211_hw *hw,
  	unsigned long flags;
  	u32 wait_us;
 
-	wait_us = ath_tx_default_wait(ath_tx_get_buf_size(hw->priv));
+	wait_ms = ath_tx_default_wait(ath_tx_get_buf_size(hw->priv));
 	// if (counter % 1000 == 0) {
 	// 	pr_info("Sending packet with delay: %d us\n", wait_us);
 	// 	counter = 0;
 	// } else {
 	// 	counter++;
 	// }
-	// udelay(wait_us);
-	mdelay(20);
+	mdelay(wait_ms);
 
 	sc = hw->priv;
 	common = ath9k_hw_common(sc->sc_ah);
